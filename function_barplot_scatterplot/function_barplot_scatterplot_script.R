@@ -20,6 +20,7 @@ function_barplot_scatterplot <-
              #whether you want to compute the nsat for your data. Default is no. Using this will assume that you have a 1 to 5 nsat scale
              nsat_in_title = no,
              #if you chose to compute the nsat, do you want to insert it in the plot's title. Default is no. Won't do anything if you select no for the above compute_nsat option
+             product_name = "Tech Product",
              rotation = 45
              ){
         
@@ -52,7 +53,12 @@ function_barplot_scatterplot <-
                     xaxis_col_num == 3 ~ "3) Neither Satisfied Nor Dissatisfied",
                     xaxis_col_num == 4 ~ "4) Somewhat Satisfied",
                     xaxis_col_num == 5 ~ "5) Very Satisfied"
-                ))
+                )) %>%
+                group_by(xaxis_col_char) %>%
+                mutate(score_count = n()) %>%
+                ungroup() %>%
+                mutate(score_percent = round((score_count/n())*100, 2)) 
+                
             
             n_satisfied <- sum(data$xaxis_col_num == 4) + sum(data$xaxis_col_num == 5)
             
@@ -78,12 +84,25 @@ function_barplot_scatterplot <-
             
             data %>%
                 ggplot(aes(x = xaxis_col_char)) +
-                geom_bar(position = "dodge",
-                         color = "darkgreen",
-                         fill = "darkblue",
-                         aes(y = (..count..))) +
-                ggtitle(paste(glue::glue("{nsat} plot"))) + 
-                theme(axis.text.x = element_text(angle = rotation, hjust = 0.5, vjust = 0.5))
+                geom_bar(stat="identity",
+                         position = "dodge",
+                         color = "darkblue",
+                         fill = "white",
+                         size = 0.9,
+                         aes(y = score_percent)) + 
+                scale_y_continuous(labels = scales::number_format(suffix = "%")) + 
+                #appending a percent sign to the end of the numbers on the y-axis
+                theme(axis.text.x = element_text(angle = rotation, 
+                                                 hjust = 1.0, 
+                                                 vjust = 1.0)) +
+                geom_text(aes(y = score_percent, label= paste(glue::glue("{score_count}\nparticipants\n{score_percent}%\nof\nsample"))),
+                          color = "darkblue",
+                          size = 3) + 
+                labs(title = paste(glue::glue("{product_name} NSAT Plot
+                                         {nsat} NSAT Score")),
+                     subtitle = "",
+                     x = "NSAT Rating",
+                     y = "Percent Respondents")
         }
                 
         }
