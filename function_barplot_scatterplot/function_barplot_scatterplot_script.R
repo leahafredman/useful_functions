@@ -21,7 +21,8 @@ function_barplot_scatterplot <-
              nsat_in_title = no,
              #if you chose to compute the nsat, do you want to insert it in the plot's title. Default is no. Won't do anything if you select no for the above compute_nsat option
              product_name = "Tech Product",
-             rotation = 45
+             rotation = 45,
+             bar_text_size = 1.1
              ){
         
         #deparse(substitute) functions turn input into a character so that users don't need to surround argument with quotation marks like yes vs "yes"
@@ -86,16 +87,20 @@ function_barplot_scatterplot <-
                 ggplot(aes(x = xaxis_col_char)) +
                 geom_bar(stat="identity",
                          position = "dodge",
-                         color = "darkblue",
                          fill = "white",
                          size = 0.9,
-                         aes(y = score_percent)) + 
+                         aes(y = score_percent,
+                             color = xaxis_col_char)) + 
                 scale_y_continuous(labels = scales::number_format(suffix = "%")) + 
                 #appending a percent sign to the end of the numbers on the y-axis
                 theme(axis.text.x = element_text(angle = rotation, 
                                                  hjust = 1.0, 
-                                                 vjust = 1.0)) +
-                geom_text(aes(y = score_percent, label= paste(glue::glue("{score_count}\nparticipants\n{score_percent}%\nof\nsample"))),
+                                                 vjust = 1.0,
+                                                 color = xaxis_col_char),
+                      legend.position="none") +
+                geom_text(aes(y = score_percent, 
+                              vjust = bar_text_size,
+                              label= paste(glue::glue("{score_count}\nparticipants\n{score_percent}%\nof\nsample"))),
                           color = "darkblue",
                           size = 3) + 
                 labs(title = paste(glue::glue("{product_name} NSAT Plot
