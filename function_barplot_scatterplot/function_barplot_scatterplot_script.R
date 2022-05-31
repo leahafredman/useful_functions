@@ -91,17 +91,18 @@ function_barplot_scatterplot <-
                          size = 0.9,
                          aes(y = score_percent,
                              color = xaxis_col_char)) + 
-                scale_y_continuous(labels = scales::number_format(suffix = "%")) + 
+                scale_y_continuous(labels = scales::number_format(suffix = "%")) +
+                scale_color_viridis(discrete = TRUE) + 
                 #appending a percent sign to the end of the numbers on the y-axis
                 theme(axis.text.x = element_text(angle = rotation, 
                                                  hjust = 1.0, 
                                                  vjust = 1.0,
-                                                 color = xaxis_col_char),
+                                                 face = "bold"), 
                       legend.position="none") +
-                geom_text(aes(y = score_percent, 
+                geom_text(aes(y = score_percent,
+                              color = xaxis_col_char, 
                               vjust = bar_text_size,
                               label= paste(glue::glue("{score_count}\nparticipants\n{score_percent}%\nof\nsample"))),
-                          color = "darkblue",
                           size = 3) + 
                 labs(title = paste(glue::glue("{product_name} NSAT Plot
                                          {nsat} NSAT Score")),
@@ -111,124 +112,4 @@ function_barplot_scatterplot <-
         }
                 
         }
-        
-        
-
-
-
-
-
-        
-        
-        #searching for any column name in the dataframe that contains the text bootstrapped_column,
-        #which should be numberic,
-        #but just in case R messed up in the import converting it to numeric datatype
-        if (any(grepl("bootstrapped_column", colnames(data)))) {
-            data %<>%
-                mutate(across(.col = everything(), .fns = ~ as.numeric(.x)))
-        } else {
-            #If I don't have the default boostrapped column then I have a more complex dataframe that should contain test_number and group_number columns
-            #and so I need to filter the dataset to include only the combination of groups and tests that I'm interested in
-            #as indicated by the test and group arguments changed from the default no
-            data %<>%
-          
-                {
-                    if (group1 == 'no')
-                        filter(., group_number != 'group1')
-                    else
-                        .
-                } %>%
-                {
-                    if (group2 == 'no')
-                        filter(., group_number != 'group2')
-                    else
-                        .
-                } %>%
-                {
-                    if (group3 == 'no')
-                        filter(., group_number != 'group3')
-                    else
-                        .
-                } %>%
-                {
-                    if (group4 == 'no')
-                        filter(., group_number != 'group4')
-                    else
-                        .
-                } %>%
-                unite('group_names_combo', c(group_number, test_number)) %>% #aggregating the group number and test number columns into a single column named group_names_combo
-                mutate(groups_column = unclass(as.factor(group_names_combo)), #retaining only the numeric representation of the names by converting the names into a factor datatype and then retaining only the numbers and dropping the class levels
-                       {
-                           {
-                               bootstrapping_column
-                           }
-                       } := as.numeric({
-                           {
-                               bootstrapping_column
-                           }
-                       })) #ensuring that the column to bootstrap will be numeric
-            
-            #Creating a dataframe that's a mapping table for the group_names_combo column
-            #so I later display results with the correct names and groups
-            data_group_names <-
-                data %>% #start with the original dataframe that we just modified in the logic above
-                dplyr::select(groups_column, group_names_combo) %>% #select the column representing the groups in number and names
-                distinct() %>% #keep only the distinct combo
-                arrange(group_names_combo)
-        }
-        
-        #Saving each group's character name
-        group1_name <- {
-            gsub('_', ', ', tolower(pull(
-                data_group_names %>%
-                    filter(groups_column == 1) %>%
-                    dplyr::select(group_names_combo)
-            )))
-        }
-        
-        group2_name <- {
-            gsub('_', ', ', tolower(pull(
-                data_group_names %>%
-                    filter(groups_column == 2) %>%
-                    dplyr::select(group_names_combo)
-            )))
-        }
-        
-        if (any(grepl("3", data_group_names$groups_column))) {
-            group3_name <- {
-                gsub('_', ', ', tolower(
-                    pull(
-                        data_group_names %>%
-                            filter(groups_column == 3) %>%
-                            dplyr::select(group_names_combo)
-                    )
-                ))
-            }
-        }
-        
-        if (any(grepl("4", data_group_names$groups_column))) {
-            group4_name <- {
-                gsub('_', ', ', tolower(
-                    pull(
-                        data_group_names %>%
-                            filter(groups_column == 4) %>%
-                            dplyr::select(group_names_combo)
-                    )
-                ))
-            }
-        }
-        
-        #A function to bootstrap a statistic which is the same for all group
-        #the group filtering will happen in the next step where we set up the unit to bootstrap
-        function_boot_group_mean <-
-            function(data = data, random) {
-                d = data[random, ] #subsetting all columns but random rows
-                group_mean = mean(d %>% dplyr::select({
-                    {
-                        bootstrapping_column
-                    }
-                }) %>% pull(),
-                na.rm = TRUE)
-                
-                return(group_mean)
-            }
+  
