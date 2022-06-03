@@ -10,16 +10,12 @@ function_barplot_scatterplot <-
              #whether you want to plot a barplot. Default is no
              plotting_column_x = values,
              #column to plot on the x-axis. Column must be numeric data type (i.e. numbers only)
-             plotting_column_y = xaxis,
+             plotting_column_y = c(),
              #column to plot on the y-axis (if applicable). Column must be numeric data type (i.e. numbers only)
              column_x_have_na = no,
              #does the x-axis columns have any variables representing an NA answer that you want removed
              column_y_have_na = no,
              #does the y-axis columns have any variables representing an NA answer that you want removed (if applicable)
-             compute_nsat = no,
-             #whether you want to compute the nsat for your data. Default is no. Using this will assume that you have a 1 to 5 nsat scale
-             nsat_in_title = no,
-             #if you chose to compute the nsat, do you want to insert it in the plot's title. Default is no. Won't do anything if you select no for the above compute_nsat option
              value_1 = 1,
              value_2 = 2,
              value_3 = 3,
@@ -39,15 +35,15 @@ function_barplot_scatterplot <-
              rotation = 45,
              bar_text_size = 1.1,
              main_title_text = "Main Title Goes Here",
-             subtitle_text = "Subtitle Goes Here"
+             subtitle_text = "Subtitle Goes Here",
+             x_axis_variable_name = "NSAT Score",
+             y_axis_variable_name = "NSAT Module Scores"
              ){
         
         #deparse(substitute) functions turn input into a character so that users don't need to surround argument with quotation marks like yes vs "yes"
         create_barplot <- deparse(substitute(create_barplot))
         nsat_barplot <- deparse(substitute(nsat_barplot))
         create_scatterplot <- deparse(substitute(create_scatterplot))
-        plotting_column_x <- deparse(substitute(plotting_column_x))
-        plotting_column_y <- deparse(substitute(plotting_column_y))
         column_x_have_na <- deparse(substitute(column_x_have_na))
         column_y_have_na <- deparse(substitute(column_y_have_na))
         compute_nsat <- deparse(substitute(compute_nsat))
@@ -67,9 +63,9 @@ function_barplot_scatterplot <-
             
             #Creating dataframe for the barplot
             data %<>%
-                dplyr::select(contains(plotting_column_x)) %>%
+                dplyr::select({{plotting_column_x}}) %>%
                 #selecting only the column with the data the we want to plot
-                rename_with(.cols = contains(plotting_column_x), .fn = ~ as.character("xaxis_col_num")) %>%
+                rename_with(.cols = {{plotting_column_x}}, .fn = ~ as.character("xaxis_col_num")) %>%
                 #renaming the numeric column to plot so that it's easier to reference it down the line
                 {if(nsat_barplot == "yes") filter_all(., any_vars(. < 6 & . > 0)) else .} %>%
                 #filtering if this is an nsat plot so that we only have values between 1 and 5 in our column
@@ -143,16 +139,43 @@ function_barplot_scatterplot <-
                 {if(nsat_barplot != "yes") labs(title = glue::glue("{main_title_text}"),
                     subtitle = glue::glue("{subtitle_text}"),
                     x = "Rating",
-                    y = {if((nsat_barplot == "yes") | (y_axis_percent == "yes")) "Percent Respondents" else "Numbre of Respondents"})}
+                    y = {if((nsat_barplot == "yes") | (y_axis_percent == "yes")) "Percent Respondents" else "Number of Respondents"})}
+        }
+        
+        
+        #Code to create a scatterplot
+        if(create_scatterplot != "no"){
+            
+            #Creating dataframe for the scatterplot
+            data %<>%
+                dplyr::select({{plotting_column_x}}, any_of(plotting_column_y)) %>%
+                pivot_longer(cols = plotting_column_y) %>%
+                drop_na()
+            
+            data %>% #building the bar chart
+                ggplot(aes(x = {{plotting_column_x}},
+                           y = value,
+                           groups = name)) +
+                geom_jitter(aes(color = name, shape = name),
+                            stat = "identity",
+                    position = "jitter",
+                    alpha = .5) +
+                facet_grid(cols = vars(name), scales = "free") +
+                theme(axis.text.x = element_text(angle = rotation,
+                                                 face = "bold"), 
+                      legend.position="none") +
+                labs(title = glue::glue("{main_title_text}"),
+                                                subtitle = glue::glue("{subtitle_text}"),
+                                                x = glue::glue("{x_axis_variable_name}"),
+                                                y = glue::glue("{y_axis_variable_name}"))
+        }
+            
         }
                 
-    }
+    
 
 
 function_barplot_scatterplot(
-    data = read_csv(file = here::here("csv_dataframe2.csv"),
-                    #dataframe name or csv name to pull in
-                    show_col_types = FALSE) %>% filter(values < 6 & values > 0),
     value_1_char = "1) Very Dissatisfied",
                              value_2_char = "2) Somewhat Dissatisfied",
                              value_3_char = "3) Neither Satisfied Nor Dissatisfied",
@@ -162,6 +185,11 @@ function_barplot_scatterplot(
     y_axis_percent == "yes"
     )
 
+function_barplot_scatterplot(
 
+    create_scatterplot = yes,
+    create_barplot = no,
+    plotting_column_y = c('values1', 'values2', 'values3', 'values4')
+)
 
   
