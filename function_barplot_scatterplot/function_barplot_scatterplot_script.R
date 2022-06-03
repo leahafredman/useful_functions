@@ -35,8 +35,11 @@ function_barplot_scatterplot <-
              value_6_char = none,
              value_7_char = none,
              product_name = "Tech Product",
+             y_axis_percent = yes,
              rotation = 45,
-             bar_text_size = 1.1
+             bar_text_size = 1.1,
+             main_title_text = "Main Title Goes Here",
+             subtitle_text = "Subtitle Goes Here"
              ){
         
         #deparse(substitute) functions turn input into a character so that users don't need to surround argument with quotation marks like yes vs "yes"
@@ -56,6 +59,7 @@ function_barplot_scatterplot <-
         value_5_char <- deparse(substitute(value_5_char))
         value_6_char <- deparse(substitute(value_6_char))
         value_7_char <- deparse(substitute(value_7_char))
+        y_axis_percent <- deparse(substitute(y_axis_percent))
         
         
         #Code to create a barplot
@@ -70,16 +74,19 @@ function_barplot_scatterplot <-
                 {if(nsat_barplot == "yes") filter_all(., any_vars(. < 6 & . > 0)) else .} %>%
                 #filtering if this is an nsat plot so that we only have values between 1 and 5 in our column
                 mutate(xaxis_col_char = case_when(
-                    xaxis_col_num == value_1 ~ glue::glue("{value_1_char}"),
-                    xaxis_col_num == value_2 ~ glue::glue("{value_2_char}"),
-                    xaxis_col_num == value_3 ~ glue::glue("{value_3_char}"),
-                    xaxis_col_num == value_4 ~ glue::glue("{value_4_char}"),
-                    xaxis_col_num == value_5 ~ glue::glue("{value_5_char}")
+                    xaxis_col_num == value_1 ~ gsub('"', '', glue::glue("{value_1_char}")),
+                    xaxis_col_num == value_2 ~ gsub('"', '', glue::glue("{value_2_char}")),
+                    xaxis_col_num == value_3 ~ gsub('"', '', glue::glue("{value_3_char}")),
+                    xaxis_col_num == value_4 ~ gsub('"', '', glue::glue("{value_4_char}")),
+                    xaxis_col_num == value_5 ~ gsub('"', '', glue::glue("{value_5_char}")),
+                    xaxis_col_num == value_6 ~ gsub('"', '', glue::glue("{value_6_char}")),
+                    xaxis_col_num == value_7 ~ gsub('"', '', glue::glue("{value_7_char}"))
                 )) %>%
                 group_by(xaxis_col_num) %>%
                 mutate(score_count = n()) %>%
                 ungroup() %>%
-                mutate(score_percent = round((score_count/n())*100, 2)) 
+                mutate(score_percent = round((score_count/n())*100, 2)) %>%
+                drop_na()
                 
             
             if(nsat_barplot == "yes"){ #calculating the nsat
@@ -112,10 +119,11 @@ function_barplot_scatterplot <-
                          position = "dodge",
                          fill = "white",
                          size = 0.9,
-                         aes(y = score_percent,
+                         aes(y = {if((nsat_barplot == "yes") | (y_axis_percent == "yes")) score_percent
+                             else score_count},
                              color = xaxis_col_char)) + 
-                scale_y_continuous(labels = scales::number_format(suffix = "%", accuracy = 1)) +
-                scale_color_viridis(discrete = TRUE) + 
+                {if((nsat_barplot == "yes") | (y_axis_percent == "yes")) scale_y_continuous(labels = scales::number_format(suffix = "%", accuracy = 1))} +
+                #scale_color_viridis(discrete = TRUE) + 
                 #appending a percent sign to the end of the numbers on the y-axis
                 theme(axis.text.x = element_text(angle = rotation, 
                                                  hjust = 1.0, 
@@ -127,21 +135,32 @@ function_barplot_scatterplot <-
                               vjust = bar_text_size,
                               label= paste(glue::glue("{score_count}\nparticipants\n{score_percent}%\nof\nsample"))),
                           size = 3) + 
-                labs(title = paste(glue::glue("{product_name} NSAT Plot
+                {if(nsat_barplot == "yes") labs(title = paste(glue::glue("{product_name} NSAT Plot
                                          {nsat} NSAT Score")),
                      subtitle = "",
                      x = "NSAT Rating",
-                     y = "Percent Respondents")
+                     y = "Percent Respondents")} + 
+                {if(nsat_barplot != "yes") labs(title = glue::glue("{main_title_text}"),
+                    subtitle = glue::glue("{subtitle_text}"),
+                    x = "Rating",
+                    y = {if((nsat_barplot == "yes") | (y_axis_percent == "yes")) "Percent Respondents" else "Numbre of Respondents"})}
         }
                 
     }
 
 
-function_barplot_scatterplot("1) Very Dissatisfied",
-                             xaxis_col_num == 2 ~ "2) Somewhat Dissatisfied",
-                             xaxis_col_num == 3 ~ "3) Neither Satisfied Nor Dissatisfied",
-                             xaxis_col_num == 4 ~ "4) Somewhat Satisfied",
-                             xaxis_col_num == 5 ~ "5) Very Satisfied")
+function_barplot_scatterplot(
+    data = read_csv(file = here::here("csv_dataframe2.csv"),
+                    #dataframe name or csv name to pull in
+                    show_col_types = FALSE) %>% filter(values < 6 & values > 0),
+    value_1_char = "1) Very Dissatisfied",
+                             value_2_char = "2) Somewhat Dissatisfied",
+                             value_3_char = "3) Neither Satisfied Nor Dissatisfied",
+                             value_4_char = "4) Somewhat Satisfied",
+                             value_5_char = "5) Very Satisfied",
+    nsat_barplot = no,
+    y_axis_percent == "yes"
+    )
 
 
 
