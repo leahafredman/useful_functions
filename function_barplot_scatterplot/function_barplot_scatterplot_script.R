@@ -20,6 +20,20 @@ function_barplot_scatterplot <-
              #whether you want to compute the nsat for your data. Default is no. Using this will assume that you have a 1 to 5 nsat scale
              nsat_in_title = no,
              #if you chose to compute the nsat, do you want to insert it in the plot's title. Default is no. Won't do anything if you select no for the above compute_nsat option
+             value_1 = 1,
+             value_2 = 2,
+             value_3 = 3,
+             value_4 = 4,
+             value_5 = 5,
+             value_6 = 999,
+             value_7 = 9999,
+             value_1_char = none,
+             value_2_char = none,
+             value_3_char = none,
+             value_4_char = none,
+             value_5_char = none,
+             value_6_char = none,
+             value_7_char = none,
              product_name = "Tech Product",
              rotation = 45,
              bar_text_size = 1.1
@@ -35,10 +49,17 @@ function_barplot_scatterplot <-
         column_y_have_na <- deparse(substitute(column_y_have_na))
         compute_nsat <- deparse(substitute(compute_nsat))
         nsat_in_title <- deparse(substitute(nsat_in_title))
+        value_1_char <- deparse(substitute(value_1_char))
+        value_2_char <- deparse(substitute(value_2_char))
+        value_3_char <- deparse(substitute(value_3_char))
+        value_4_char <- deparse(substitute(value_4_char))
+        value_5_char <- deparse(substitute(value_5_char))
+        value_6_char <- deparse(substitute(value_6_char))
+        value_7_char <- deparse(substitute(value_7_char))
         
         
         #Code to create a barplot
-        if(create_barplot == "yes" & nsat_barplot == "yes"){
+        if(create_barplot == "yes"){
             
             #Creating dataframe for the barplot
             data %<>%
@@ -46,21 +67,22 @@ function_barplot_scatterplot <-
                 #selecting only the column with the data the we want to plot
                 rename_with(.cols = contains(plotting_column_x), .fn = ~ as.character("xaxis_col_num")) %>%
                 #renaming the numeric column to plot so that it's easier to reference it down the line
-                filter_all(any_vars(. < 6 & . > 0)) %>%
-                #filtering so that we only have values between 1 and 5 in our column
+                {if(nsat_barplot == "yes") filter_all(., any_vars(. < 6 & . > 0)) else .} %>%
+                #filtering if this is an nsat plot so that we only have values between 1 and 5 in our column
                 mutate(xaxis_col_char = case_when(
-                    xaxis_col_num == 1 ~ "1) Very Dissatisfied",
-                    xaxis_col_num == 2 ~ "2) Somewhat Dissatisfied",
-                    xaxis_col_num == 3 ~ "3) Neither Satisfied Nor Dissatisfied",
-                    xaxis_col_num == 4 ~ "4) Somewhat Satisfied",
-                    xaxis_col_num == 5 ~ "5) Very Satisfied"
+                    xaxis_col_num == value_1 ~ glue::glue("{value_1_char}"),
+                    xaxis_col_num == value_2 ~ glue::glue("{value_2_char}"),
+                    xaxis_col_num == value_3 ~ glue::glue("{value_3_char}"),
+                    xaxis_col_num == value_4 ~ glue::glue("{value_4_char}"),
+                    xaxis_col_num == value_5 ~ glue::glue("{value_5_char}")
                 )) %>%
-                group_by(xaxis_col_char) %>%
+                group_by(xaxis_col_num) %>%
                 mutate(score_count = n()) %>%
                 ungroup() %>%
                 mutate(score_percent = round((score_count/n())*100, 2)) 
                 
             
+            if(nsat_barplot == "yes"){ #calculating the nsat
             n_satisfied <- sum(data$xaxis_col_num == 4) + sum(data$xaxis_col_num == 5)
             
             n_dissatisfied <- sum(data$xaxis_col_num == 1) + sum(data$xaxis_col_num == 2)
@@ -82,8 +104,9 @@ function_barplot_scatterplot <-
             
             #because we're adding 100 to the score the final nsat score will be between 100 and 200
             nsat <- round(p_satisfied - p_dissatisfied + 100, 0)
+            }
             
-            data %>%
+            data %>% #building the bar chart
                 ggplot(aes(x = xaxis_col_char)) +
                 geom_bar(stat="identity",
                          position = "dodge",
@@ -91,7 +114,7 @@ function_barplot_scatterplot <-
                          size = 0.9,
                          aes(y = score_percent,
                              color = xaxis_col_char)) + 
-                scale_y_continuous(labels = scales::number_format(suffix = "%")) +
+                scale_y_continuous(labels = scales::number_format(suffix = "%", accuracy = 1)) +
                 scale_color_viridis(discrete = TRUE) + 
                 #appending a percent sign to the end of the numbers on the y-axis
                 theme(axis.text.x = element_text(angle = rotation, 
@@ -111,5 +134,15 @@ function_barplot_scatterplot <-
                      y = "Percent Respondents")
         }
                 
-        }
+    }
+
+
+function_barplot_scatterplot("1) Very Dissatisfied",
+                             xaxis_col_num == 2 ~ "2) Somewhat Dissatisfied",
+                             xaxis_col_num == 3 ~ "3) Neither Satisfied Nor Dissatisfied",
+                             xaxis_col_num == 4 ~ "4) Somewhat Satisfied",
+                             xaxis_col_num == 5 ~ "5) Very Satisfied")
+
+
+
   
